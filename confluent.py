@@ -202,10 +202,11 @@ def confluent_flow(G, t, demand='demand', capacity='capacity', verbose=False):
         sinks[v]['color'] = i
     for v in free_nodes:
         H.node[v]['color'] = -1
-    
+
     # Main loop: aggregate, break sawtooth cycles and pivot.
     while free_nodes:
         (_aggregate(H, sinks, frontier_nodes, free_nodes, verbose=verbose) or
          _break_sawtooth(H, sinks, frontier_nodes, free_nodes, verbose=verbose) or
          _pivot(H, sinks, frontier_nodes, free_nodes, verbose=verbose))
     return sinks
+

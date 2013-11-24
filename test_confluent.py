@@ -170,7 +170,7 @@ class TestConfluent:
 
     def test_confluent(self):
         G = nx.DiGraph()
-        G.add_weighted_edges_from([(0, 2, 3), (0, 2, 1), (1, 3, 3),
+        G.add_weighted_edges_from([(0, 1, 3), (0, 2, 1), (1, 3, 3),
                                    (2, 6, 3), (3, 10, 3), (3, 7, 1),
                                    (4, 8, 1), (5, 4, 1), (5, 2, 1),
                                    (5, 9, 2), (6, 9, 3), (6, 10, 2),
@@ -188,6 +188,13 @@ class TestConfluent:
         G.node[9]['demand'] = 0
         G.node[10]['demand'] = 2
 
-        sinks = confluent.confluent_flow(G, 't', verbose=True)
-        print(sinks)
+        sinks = confluent.confluent_flow(G, 't')
+        assert_equal(sinks[8]['congestion'], 1)
+        assert_equal(sorted(sinks[8]['tree_arcs']), [(4, 8)])
+        assert_equal(sinks[9]['congestion'], 7)
+        assert_equal(sorted(sinks[9]['tree_arcs']),
+                     [(2, 6), (5, 9), (6, 9)])
+        assert_equal(sinks[10]['congestion'], 8)
+        assert_equal(sorted(sinks[10]['tree_arcs']),
+                     [(0, 1), (1, 3), (3, 10), (7, 10)])
 
