@@ -14,6 +14,7 @@ import networkx as nx
 from nose.tools import *
 import confluent
 
+
 class TestConfluent:
     def test_aggregate(self):
         H = nx.DiGraph()
@@ -46,8 +47,8 @@ class TestConfluent:
     def test_break_sawtooth(self):
         H = nx.DiGraph()
         H.add_weighted_edges_from([(0, 1, 3), (0, 2, 1), (1, 3, 3), (2, 6, 2),
-                          (3, 10, 3), (3, 7, 1), (4, 8, 1), (5, 4, 1),
-                          (5, 9, 2), (6, 9, 3), (6, 10, 1), (7, 10, 2)])
+                                  (3, 10, 3), (3, 7, 1), (4, 8, 1), (5, 4, 1),
+                                  (5, 9, 2), (6, 9, 3), (6, 10, 1), (7, 10, 2)])
         for v in H:
             H.node[v]['color'] = -1
         for v in (4, 8):
@@ -57,18 +58,19 @@ class TestConfluent:
             H.node[v]['color'] = 3
         sinks = {8: {'color': 1, 'tree_arcs': [(4, 8)]},
                  9: {'color': 2, 'tree_arcs': []},
-                 10:{'color': 3, 'tree_arcs': [(1, 3), (3, 7), (3, 10), (7, 10)]}}
+                 10: {'color': 3,
+                      'tree_arcs': [(1, 3), (3, 7), (3, 10), (7, 10)]}}
         frontier_nodes = set((0, 2, 5, 6))
         free_nodes = [0, 2, 5, 6]
         res = confluent._break_sawtooth(H, sinks, frontier_nodes, free_nodes)
         assert_true(res)
         assert_equal(sorted(H.edges(data=True)),
-                sorted([(0, 1, {'weight': 4}),
-                 (1, 3, {'weight': 3}), (2, 6, {'weight': 1}),
-                 (3, 10, {'weight': 3}), (3, 7, {'weight': 1}),
-                 (4, 8, {'weight': 1}), (5, 4, {'weight': 1}),
-                 (5, 9, {'weight': 2}), (6, 9, {'weight': 3}),
-                 (7, 10, {'weight': 2})]))
+                     sorted([(0, 1, {'weight': 4}),
+                             (1, 3, {'weight': 3}), (2, 6, {'weight': 1}),
+                             (3, 10, {'weight': 3}), (3, 7, {'weight': 1}),
+                             (4, 8, {'weight': 1}), (5, 4, {'weight': 1}),
+                             (5, 9, {'weight': 2}), (6, 9, {'weight': 3}),
+                             (7, 10, {'weight': 2})]))
 
     def test_break_two_sawtooth(self):
         H = nx.DiGraph()
@@ -85,18 +87,19 @@ class TestConfluent:
             H.node[v]['color'] = 3
         sinks = {8: {'color': 1, 'tree_arcs': [(4, 8)]},
                  9: {'color': 2, 'tree_arcs': []},
-                 10:{'color': 3, 'tree_arcs': [(1, 3), (3, 7), (3, 10), (7, 10)]}}
+                 10: {'color': 3,
+                      'tree_arcs': [(1, 3), (3, 7), (3, 10), (7, 10)]}}
         frontier_nodes = set((0, 2, 5, 6))
         free_nodes = [0, 2, 5, 6]
         while confluent._break_sawtooth(H, sinks, frontier_nodes, free_nodes):
             pass
         assert_equal(sorted(H.edges(data=True)),
-                sorted([(0, 1, {'weight': 4}),
-                 (1, 3, {'weight': 3}), (2, 6, {'weight': 1}),
-                 (3, 10, {'weight': 3}), (3, 7, {'weight': 1}),
-                 (4, 8, {'weight': 1}), (5, 4, {'weight': 1}),
-                 (5, 9, {'weight': 3}), (6, 9, {'weight': 2}),
-                 (6, 10, {'weight': 1}), (7, 10, {'weight': 2})]))
+                     sorted([(0, 1, {'weight': 4}),
+                             (1, 3, {'weight': 3}), (2, 6, {'weight': 1}),
+                             (3, 10, {'weight': 3}), (3, 7, {'weight': 1}),
+                             (4, 8, {'weight': 1}), (5, 4, {'weight': 1}),
+                             (5, 9, {'weight': 3}), (6, 9, {'weight': 2}),
+                             (6, 10, {'weight': 1}), (7, 10, {'weight': 2})]))
 
     def test_pivot(self):
         H = nx.DiGraph()
@@ -114,7 +117,8 @@ class TestConfluent:
         H.node[7]['color'] = 2
         H.node[8]['color'] = 3
         sinks = {4: {'color': 0, 'tree_arcs': [(2, 4)], 'congestion': 3},
-                 5: {'color': 1, 'tree_arcs': [(1, 3), (3, 5)], 'congestion': 4},
+                 5: {'color': 1,
+                     'tree_arcs': [(1, 3), (3, 5)], 'congestion': 4},
                  7: {'color': 2, 'tree_arcs': [], 'congestion': 1},
                  8: {'color': 3, 'tree_arcs': [], 'congestion': 0}}
         frontier_nodes = set((0, 6, 9))
@@ -122,16 +126,17 @@ class TestConfluent:
         res = confluent._pivot(H, sinks, frontier_nodes, free_nodes)
         assert_true(res)
         assert_equal(sorted(H.edges(data=True)),
-            sorted([(0, 1, {'weight': 3}), (0, 3, {'weight': 1}),
-                    (0, 5, {'weight': 1}), (1, 3, {'weight': 1}),
-                    (2, 4, {'weight': 2}), (3, 5, {'weight': 3}),
-                    (6, 7, {'weight': 1}), (6, 8, {'weight': 1}),
-                    (9, 7, {'weight': 1}), (9, 8, {'weight': 1})]))
+                     sorted([(0, 1, {'weight': 3}), (0, 3, {'weight': 1}),
+                             (0, 5, {'weight': 1}), (1, 3, {'weight': 1}),
+                             (2, 4, {'weight': 2}), (3, 5, {'weight': 3}),
+                             (6, 7, {'weight': 1}), (6, 8, {'weight': 1}),
+                             (9, 7, {'weight': 1}), (9, 8, {'weight': 1})]))
         assert_equal(sinks,
-                {4: {'color': 0, 'tree_arcs': [(2, 4)], 'congestion': 1},
-                 5: {'color': 1, 'tree_arcs': [(1, 3), (3, 5)], 'congestion': 6},
-                 7: {'color': 2, 'tree_arcs': [], 'congestion': 1},
-                 8: {'color': 3, 'tree_arcs': [], 'congestion': 0}})
+                     {4: {'color': 0, 'tree_arcs': [(2, 4)], 'congestion': 1},
+                      5: {'color': 1,
+                          'tree_arcs': [(1, 3), (3, 5)], 'congestion': 6},
+                      7: {'color': 2, 'tree_arcs': [], 'congestion': 1},
+                      8: {'color': 3, 'tree_arcs': [], 'congestion': 0}})
 
     def test_pivot2(self):
         H = nx.DiGraph()
@@ -149,7 +154,8 @@ class TestConfluent:
         H.node[7]['color'] = 2
         H.node[8]['color'] = 3
         sinks = {4: {'color': 0, 'tree_arcs': [(2, 4)], 'congestion': 3},
-                 5: {'color': 1, 'tree_arcs': [(1, 3), (3, 5)], 'congestion': 11},
+                 5: {'color': 1,
+                     'tree_arcs': [(1, 3), (3, 5)], 'congestion': 11},
                  7: {'color': 2, 'tree_arcs': [], 'congestion': 1},
                  8: {'color': 3, 'tree_arcs': [], 'congestion': 0}}
         frontier_nodes = set((0, 6, 9))
@@ -157,16 +163,17 @@ class TestConfluent:
         res = confluent._pivot(H, sinks, frontier_nodes, free_nodes)
         assert_true(res)
         assert_equal(sorted(H.edges(data=True)),
-            sorted([(0, 2, {'weight': 4}), (0, 4, {'weight': 1}),
-                    (1, 3, {'weight': 1}),
-                    (2, 4, {'weight': 2}), (3, 5, {'weight': 3}),
-                    (6, 7, {'weight': 1}), (6, 8, {'weight': 1}),
-                    (9, 7, {'weight': 1}), (9, 8, {'weight': 1})]))
+                     sorted([(0, 2, {'weight': 4}), (0, 4, {'weight': 1}),
+                             (1, 3, {'weight': 1}),
+                             (2, 4, {'weight': 2}), (3, 5, {'weight': 3}),
+                             (6, 7, {'weight': 1}), (6, 8, {'weight': 1}),
+                             (9, 7, {'weight': 1}), (9, 8, {'weight': 1})]))
         assert_equal(sinks,
-                {4: {'color': 0, 'tree_arcs': [(2, 4)], 'congestion': 6},
-                 5: {'color': 1, 'tree_arcs': [(1, 3), (3, 5)], 'congestion': 8},
-                 7: {'color': 2, 'tree_arcs': [], 'congestion': 1},
-                 8: {'color': 3, 'tree_arcs': [], 'congestion': 0}})
+                     {4: {'color': 0, 'tree_arcs': [(2, 4)], 'congestion': 6},
+                      5: {'color': 1,
+                          'tree_arcs': [(1, 3), (3, 5)], 'congestion': 8},
+                      7: {'color': 2, 'tree_arcs': [], 'congestion': 1},
+                      8: {'color': 3, 'tree_arcs': [], 'congestion': 0}})
 
     def test_confluent(self):
         G = nx.DiGraph()
@@ -197,4 +204,3 @@ class TestConfluent:
         assert_equal(sinks[10]['congestion'], 8)
         assert_equal(sorted(sinks[10]['tree_arcs']),
                      [(0, 1), (1, 3), (3, 10), (7, 10)])
-

@@ -31,7 +31,7 @@ def _compute_support_for_max_flow(G, t, demand='demand', capacity='capacity'):
     # Create the support graph for the flow.
     H = nx.DiGraph()
     H.add_weighted_edges_from(
-            [(u, v, flow[u][v]) for u, v in G.edges_iter() if flow[u][v] > 0])
+        [(u, v, flow[u][v]) for u, v in G.edges_iter() if flow[u][v] > 0])
     for node in H:
         H.node[node][demand] = G.node[node].get(demand, 0)
     return H
@@ -50,7 +50,7 @@ def _aggregate(H, sinks, frontier_nodes, free_nodes, verbose=False):
             for sink in sinks:
                 if sinks[sink]['color'] == color:
                     sinks[sink]['tree_arcs'].append(
-                            (node, next(iter(H[node].keys()))))
+                        (node, next(iter(H[node].keys()))))
                     break
             frontier_nodes.remove(node)
             free_nodes.remove(node)
@@ -160,7 +160,8 @@ def _pivot(H, sinks, frontier_nodes, free_nodes, verbose=False):
         sinks[sink]['congestion'] += flow
         sinks[sink2]['congestion'] -= flow
         if verbose:
-            print("Pivoted {} units of flow from {} to {}".format(flow, sink2, sink))
+            print("Pivoted {} units of flow from {} to {}".format(
+                flow, sink2, sink))
     else:
         flow = sum(H[u][v]['weight'] for u, v in incoming_arcs)
         H[pivot_node][arcs_to_tree2[0][1]]['weight'] += flow
@@ -169,7 +170,8 @@ def _pivot(H, sinks, frontier_nodes, free_nodes, verbose=False):
         sinks[sink2]['congestion'] += flow
         sinks[sink]['congestion'] -= flow
         if verbose:
-            print("Pivoted {} units of flow from {} to {}".format(flow, sink, sink2))
+            print("Pivoted {} units of flow from {} to {}".format(
+                flow, sink, sink2))
             print("Deactivated sink {}".format(sink))
 
     return True
@@ -209,4 +211,3 @@ def confluent_flow(G, t, demand='demand', capacity='capacity', verbose=False):
          _break_sawtooth(H, sinks, frontier_nodes, free_nodes, verbose=verbose) or
          _pivot(H, sinks, frontier_nodes, free_nodes, verbose=verbose))
     return sinks
-
