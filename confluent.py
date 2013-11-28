@@ -92,7 +92,8 @@ def _break_sawtooth(H, sinks, frontier_nodes, free_nodes, verbose=False):
 
     # Break the cycle.
     cycle_edges = list(zip(cycle, cycle[1:] + cycle[:1]))
-    min_flow = min(H_aux[u][v]['weight'] for u, v in cycle_edges)
+    min_flow = min(H_aux[u][v]['weight'] for u, v in cycle_edges
+                   if not H_aux[u][v]['reverse'])
     for u, v in cycle_edges:
         neigh = H_aux[u][v]['true_neigh']
         if H_aux[u][v]['reverse']:
@@ -101,8 +102,15 @@ def _break_sawtooth(H, sinks, frontier_nodes, free_nodes, verbose=False):
             H[u][neigh]['weight'] -= min_flow
             if H[u][neigh]['weight'] == 0:
                 H.remove_edge(u, neigh)
+                deleted_arc = (u, neigh)
+                if (u in frontier_nodes and
+                    len(set(H.node[w]['color'] for w in H[u]
+                           if H.node[w]['color'] != -1)) == 0):
+                    frontier_nodes.remove(u)
+
     if verbose:
         print("Augmented flow by {} on cycle {}".format(min_flow, cycle))
+        print("Deleted arc {}".format(deleted_arc))
     return True
 
 
@@ -128,12 +136,13 @@ def _pivot(H, sinks, frontier_nodes, free_nodes, sink_for_color, verbose=False):
                     arcs_to_tree1.append((v, neigh))
                 elif neigh_color != -1:
                     sink = sink_for_color[neigh_color]
-            if initial_len != len(arcs_to_tree1) and sink:
+            if initial_len != len(arcs_to_tree1):
                 nb_in_neighbors += 1
-                sink2 = sink
-                tree2_color = sinks[sink2]['color']
-                arcs_to_tree2 = [(v, u) for u in H[v]
-                                 if H.node[u]['color'] == tree2_color]
+                if sink:
+                    sink2 = sink
+                    tree2_color = sinks[sink2]['color']
+                    arcs_to_tree2 = [(v, u) for u in H[v]
+                                     if H.node[u]['color'] == tree2_color]
         if nb_in_neighbors == 1 and sink2:
             break
 
@@ -155,12 +164,15 @@ def _pivot(H, sinks, frontier_nodes, free_nodes, sink_for_color, verbose=False):
         H[pivot_node][arcs_to_tree2[0][1]]['weight'] += flow
         for u, v in arcs_to_tree1:
             H.remove_edge(u, v)
+        if len(set(H.node[v]['color'] for v in H[pivot_node]
+                   if H.node[v]['color'] != -1)) == 0:
+            frontier_nodes.remove(pivot_node)
         sinks[sink2]['congestion'] += flow
         sinks[sink1]['congestion'] -= flow
         if verbose:
             print("Pivoted {} units of flow from {} to {}".format(
-                flow, sink, sink2))
-            print("Deactivated sink {}".format(sink))
+                flow, sink1, sink2))
+            print("Deactivated sink {}".format(sink1))
 
     return True
 
