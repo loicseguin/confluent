@@ -22,7 +22,7 @@ def digraph1():
     G.node[9]['demand'] = 0
     G.node[10]['demand'] = 2
 
-    sinks = confluent.confluent_flow(G, 't')
+    return G
 
 def pyramid(N):
     """Generate a pyramid graph with N layers (excluding the sink at the

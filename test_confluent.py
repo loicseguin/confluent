@@ -22,25 +22,27 @@ class TestConfluent:
                           (4, 't1'), (4, 't2'), (5, 't1'), (5, 6), (6, 't3')])
         for v in H:
             H.node[v]['color'] = -1
-        for i in range(1, 4):
-            H.node['t%d' % i]['color'] = i
-        sinks = {'t1': {'color': 1, 'tree_arcs': []},
-                 't2': {'color': 2, 'tree_arcs': []},
-                 't3': {'color': 3, 'tree_arcs': []}}
+        for i in range(3):
+            H.node['t%d' % (i + 1)]['color'] = i
+        sinks = {'t1': {'color': 0, 'tree_arcs': []},
+                 't2': {'color': 1, 'tree_arcs': []},
+                 't3': {'color': 2, 'tree_arcs': []}}
+        sink_for_color = ['t1', 't2', 't3']
         frontier_nodes = set((3, 4, 5, 6))
         free_nodes = list(range(7))
 
-        while confluent._aggregate(H, sinks, frontier_nodes, free_nodes):
+        while confluent._aggregate(H, sinks, frontier_nodes, free_nodes,
+                                   sink_for_color):
             pass
         assert_equal(sinks,
-                     {'t1': {'color': 1, 'tree_arcs': [(3, 't1')]},
-                      't2': {'color': 2, 'tree_arcs': []},
-                      't3': {'color': 3, 'tree_arcs': [(6, 't3'), (2, 6)]}})
+                     {'t1': {'color': 0, 'tree_arcs': [(3, 't1')]},
+                      't2': {'color': 1, 'tree_arcs': []},
+                      't3': {'color': 2, 'tree_arcs': [(6, 't3'), (2, 6)]}})
         assert_equal(frontier_nodes, set((0, 1, 4, 5)))
         assert_equal(free_nodes, [0, 1, 4, 5])
-        assert_equal(H.node[3]['color'], 1)
-        assert_equal(H.node[2]['color'], 3)
-        assert_equal(H.node[6]['color'], 3)
+        assert_equal(H.node[3]['color'], 0)
+        assert_equal(H.node[2]['color'], 2)
+        assert_equal(H.node[6]['color'], 2)
         for v in free_nodes:
             assert_equal(H.node[v]['color'], -1)
 
@@ -123,7 +125,9 @@ class TestConfluent:
                  8: {'color': 3, 'tree_arcs': [], 'congestion': 0}}
         frontier_nodes = set((0, 6, 9))
         free_nodes = [0, 6, 9]
-        res = confluent._pivot(H, sinks, frontier_nodes, free_nodes)
+        sink_for_color = [4, 5, 7, 8]
+        res = confluent._pivot(H, sinks, frontier_nodes, free_nodes,
+                               sink_for_color)
         assert_true(res)
         assert_equal(sorted(H.edges(data=True)),
                      sorted([(0, 1, {'weight': 3}), (0, 3, {'weight': 1}),
@@ -160,7 +164,9 @@ class TestConfluent:
                  8: {'color': 3, 'tree_arcs': [], 'congestion': 0}}
         frontier_nodes = set((0, 6, 9))
         free_nodes = [0, 6, 9]
-        res = confluent._pivot(H, sinks, frontier_nodes, free_nodes)
+        sink_for_color = [4, 5, 7, 8]
+        res = confluent._pivot(H, sinks, frontier_nodes, free_nodes,
+                               sink_for_color)
         assert_true(res)
         assert_equal(sorted(H.edges(data=True)),
                      sorted([(0, 2, {'weight': 4}), (0, 4, {'weight': 1}),

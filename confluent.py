@@ -37,7 +37,7 @@ def _compute_support_for_max_flow(G, t, demand='demand', capacity='capacity'):
     return H
 
 
-def _aggregate(H, sinks, frontier_nodes, free_nodes, verbose=False):
+def _aggregate(H, sinks, frontier_nodes, free_nodes, sink_for_color, verbose=False):
     """If a frontier node has all its outgoing edges to a single arborescence,
     the node can be merged into this arborescence.
 
@@ -47,16 +47,13 @@ def _aggregate(H, sinks, frontier_nodes, free_nodes, verbose=False):
         if len(colors) == 1:
             color = colors.pop()
             H.node[node]['color'] = color
-            for sink in sinks:
-                if sinks[sink]['color'] == color:
-                    sinks[sink]['tree_arcs'].append(
-                        (node, next(iter(H[node].keys()))))
-                    break
+            sink = sink_for_color[color]
+            sinks[sink]['tree_arcs'].append((node, next(iter(H[node].keys()))))
             frontier_nodes.remove(node)
             free_nodes.remove(node)
-            for v in free_nodes:
-                if node in H[v]:
-                    frontier_nodes.add(v)
+            for u in H.predecessors_iter(node):
+                if u in free_nodes:
+                    frontier_nodes.add(u)
             if verbose:
                 print("Aggregated node {} to sink {}".format(node, sink))
             return True
@@ -109,66 +106,57 @@ def _break_sawtooth(H, sinks, frontier_nodes, free_nodes, verbose=False):
     return True
 
 
-def _pivot(H, sinks, frontier_nodes, free_nodes, verbose=False):
+def _pivot(H, sinks, frontier_nodes, free_nodes, sink_for_color, verbose=False):
     """Find a frontier node that has an arc to a sink tree with no other
     incoming arcs and a arc to another sink tree.  Pivot the flow from one tree
     to the other.  This increases the congestion at one of the sink trees.
 
     """
-    for sink in sinks:
-        tree_color = sinks[sink]['color']
+    # Find `sink1`, a sink tree with a single predecessor `pivot_node` such that
+    # the pivot has at least one outgoing arc to another sink tree.
+    for sink1 in sinks:
+        tree1_color = sinks[sink1]['color']
         nb_in_neighbors = 0
-        incoming_arcs = []
+        arcs_to_tree1 = []
+        sink2 = None
         for v in frontier_nodes:
-            nb_v_sink_arcs = 0
+            initial_len = len(arcs_to_tree1)
+            sink = None
             for neigh in H[v]:
-                if H.node[neigh]['color'] == tree_color:
-                    incoming_arcs.append((v, neigh))
-                    nb_v_sink_arcs += 1
-            if nb_v_sink_arcs > 0:
+                neigh_color = H.node[neigh]['color']
+                if neigh_color == tree1_color:
+                    arcs_to_tree1.append((v, neigh))
+                elif neigh_color != -1:
+                    sink = sink_for_color[neigh_color]
+            if initial_len != len(arcs_to_tree1) and sink:
                 nb_in_neighbors += 1
-        if nb_in_neighbors == 1:
+                sink2 = sink
+                tree2_color = sinks[sink2]['color']
+                arcs_to_tree2 = [(v, u) for u in H[v]
+                                 if H.node[u]['color'] == tree2_color]
+        if nb_in_neighbors == 1 and sink2:
             break
 
-    # At this stage, sink is a sink with only one in neighbor, incoming_arcs
-    # contains the list of all arcs from the single neighbor to the tree rooted
-    # at sink.
-    pivot_node = incoming_arcs[0][0]
-
-    # Find arcs from the pivot_node to another tree.
-    arcs_to_tree2 = []
-    tree2_color = None
-    for neigh2 in H[pivot_node]:
-        neigh2_color = H.node[neigh2]['color']
-        if (neigh2_color != tree_color
-            and ((neigh2_color != -1 and tree2_color is None)
-                 or neigh2_color == tree2_color)):
-            arcs_to_tree2.append((pivot_node, neigh2))
-            tree2_color = neigh2_color
-    for sink2 in sinks:
-        if sinks[sink2]['color'] == tree2_color:
-            break
-
-    # Now, sinks2 it the root of the second tree.
+    pivot_node = arcs_to_tree1[0][0]
 
     # Do the pivoting between tree 1 and tree 2.
     flow = sum(H[u][v]['weight'] for u, v in arcs_to_tree2)
-    if sinks[sink]['congestion'] + flow < sinks[sink2]['congestion'] - flow:
-        H[pivot_node][incoming_arcs[0][1]]['weight'] += flow
+    if sinks[sink1]['congestion'] + flow < sinks[sink2]['congestion'] - flow:
+        H[pivot_node][arcs_to_tree1[0][1]]['weight'] += flow
         for u, v in arcs_to_tree2:
             H.remove_edge(u, v)
-        sinks[sink]['congestion'] += flow
+        sinks[sink1]['congestion'] += flow
         sinks[sink2]['congestion'] -= flow
         if verbose:
             print("Pivoted {} units of flow from {} to {}".format(
-                flow, sink2, sink))
+                flow, sink2, sink1))
     else:
-        flow = sum(H[u][v]['weight'] for u, v in incoming_arcs)
+        flow = sum(H[u][v]['weight'] for u, v in arcs_to_tree1)
         H[pivot_node][arcs_to_tree2[0][1]]['weight'] += flow
-        for u, v in incoming_arcs:
+        for u, v in arcs_to_tree1:
             H.remove_edge(u, v)
         sinks[sink2]['congestion'] += flow
-        sinks[sink]['congestion'] -= flow
+        sinks[sink1]['congestion'] -= flow
         if verbose:
             print("Pivoted {} units of flow from {} to {}".format(
                 flow, sink, sink2))
@@ -198,16 +186,19 @@ def confluent_flow(G, t, demand='demand', capacity='capacity', verbose=False):
             sinks[v]['congestion'] += d['weight']
             frontier_nodes.add(u)
     H.remove_node(t)
-    free_nodes = [v for v in H if v not in sinks]
+    free_nodes = set(v for v in H if v not in sinks)
+    # For each color, name of corresponding sink.
+    sink_for_color = []
     for i, v in enumerate(sinks):
         H.node[v]['color'] = i
         sinks[v]['color'] = i
+        sink_for_color.append(v)
     for v in free_nodes:
         H.node[v]['color'] = -1
 
     # Main loop: aggregate, break sawtooth cycles and pivot.
     while free_nodes:
-        (_aggregate(H, sinks, frontier_nodes, free_nodes, verbose=verbose) or
+        (_aggregate(H, sinks, frontier_nodes, free_nodes, sink_for_color, verbose=verbose) or
          _break_sawtooth(H, sinks, frontier_nodes, free_nodes, verbose=verbose) or
-         _pivot(H, sinks, frontier_nodes, free_nodes, verbose=verbose))
+         _pivot(H, sinks, frontier_nodes, free_nodes, sink_for_color, verbose=verbose))
     return sinks
