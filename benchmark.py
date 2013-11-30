@@ -61,10 +61,16 @@ def draw_pyramid_flow(G, pos, sinks):
     for sink in sinks:
         tree = sinks[sink]['tree_arcs']
         color = sinks[sink]['color']
-        nx.draw(G, edgelist=tree, edge_color=[color] * len(tree), pos=pos,
-                width=4, edge_cmap=plt.get_cmap('jet'), edge_vmin=0.0,
+        nx.draw(G, edgelist=tree, edge_color=[color] * len(tree),
+                node_color="#348ABD", pos=pos, width=4, alpha=0.9,
+                edge_cmap=plt.get_cmap('jet'), edge_vmin=0.0,
                 edge_vmax=len(sinks), arrows=False, nodelist=nodes,
-                node_size=600, font_color='w',
-                alpha=0.8, labels=labels, with_labels=with_labels)
+                node_size=600, font_color='w', labels=labels,
+                with_labels=with_labels, linewidths=0)
+        #nx.draw(G, edgelist=tree, edge_color='0.6', linewidths=0,
+                #node_color="#348ABD", pos=pos, width=4, alpha=0.9,
+                #arrows=False, nodelist=nodes,
+                #node_size=200, font_color='w', labels=labels,
+                #with_labels=False)
         nodes = []
         with_labels = False
