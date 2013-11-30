@@ -1,8 +1,19 @@
+# -*- coding: utf-8 -*-
+"""
+Benchmark and utility functions for confluent flow algorithm.
+"""
+
+__author__ = """Loïc Séguin-C. <loicseguin@gmail.com>"""
+# Copyright (C) 2013 Loïc Séguin-C. <loicseguin@gmail.com>
+# All rights reserved.
+# BSD license.
+
 import networkx as nx
 import matplotlib.pyplot as plt
 
 
 def digraph1():
+    """Create a simple instance of the confluent flow problem."""
     G = nx.DiGraph()
     G.add_weighted_edges_from([(0, 1, 3), (0, 2, 1), (1, 3, 3),
                                (2, 6, 3), (3, 10, 3), (3, 7, 1),
@@ -24,9 +35,48 @@ def digraph1():
 
     return G
 
+
 def pyramid(N):
     """Generate a pyramid graph with N layers (excluding the sink at the
-    bottom).  Layer i has i nodes, each with demand 1/i.
+    bottom).  Layer i has i nodes, each with demand 1/i. The arc capacities are
+    such that the sum of each node's demand and its incoming flow is 1.
+
+    For instance, the arcs between the third and the fourth row are as follows:
+
+        ((2, 0), (3, 0), {'capacity': 3/4})
+        ((2, 0), (3, 1), {'capacity': 1/4})
+        ((2, 1), (3, 1), {'capacity': 2/4})
+        ((2, 1), (3, 2), {'capacity': 2/4})
+        ((2, 2), (3, 2), {'capacity': 1/4})
+        ((2, 2), (3, 3), {'capacity': 3/4})
+
+    Parameters
+    ----------
+    N : integer
+        Number of layers in the pyramid, excluding the sink 't'.
+
+    Returns
+    -------
+    G : graph
+        The pyramid graph.
+
+    pos : dictionary
+        Keyed by nodes, values indicate where in the Cartesian plane the nodes
+        should be positioned to obtain a nice drawing of a pyramid.
+
+    Examples
+    --------
+    >>> import benchmark
+    >>> G, pos = benchmark.pyramid(4)
+    >>> G.nodes(data=True)[0]
+    ((2, 0), {'demand': 0.3333333333333333})
+    >>> G.edges(data=True)[3]
+    ((0, 0), (1, 0), {'capacity': 0.5})
+
+    To draw the pyramid graph using matplotlib:
+    >>> import matplotlib.pyplot as plt
+    >>> nx.draw(G, pos=pos)
+    >>> plt.show()
 
     """
     G = nx.DiGraph()
@@ -50,7 +100,22 @@ def pyramid(N):
 
     return G, pos
 
+
 def draw_pyramid_flow(G, pos, sinks):
+    """Make a nice drawing of the confluent flow `sinks` on a pyramid graph G.
+
+    Examples
+    --------
+    >>> import networkx as nx
+    >>> import confluent
+    >>> import benchmark
+    >>> import matplotlib.pyplot as plt
+    >>> G, pos = benchmark.pyramid(5)
+    >>> sinks = confluent.confluent_flow(G, 't')
+    >>> benchmark.draw_pyramid_flow(G, pos, sinks)
+    >>> plt.show()
+
+    """
     nodes = G.nodes()
     labels = dict((node, '1/{}'.format(node[0] + 1)) for node in nodes
                   if node != 't')

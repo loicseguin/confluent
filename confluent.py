@@ -37,7 +37,8 @@ def _compute_support_for_max_flow(G, t, demand='demand', capacity='capacity'):
     return H
 
 
-def _aggregate(H, sinks, frontier_nodes, free_nodes, sink_for_color, verbose=False):
+def _aggregate(H, sinks, frontier_nodes, free_nodes, sink_for_color,
+               verbose=False):
     """If a frontier node has all its outgoing edges to a single arborescence,
     the node can be merged into this arborescence.
 
@@ -105,7 +106,7 @@ def _break_sawtooth(H, sinks, frontier_nodes, free_nodes, verbose=False):
                 deleted_arc = (u, neigh)
                 if (u in frontier_nodes and
                     len(set(H.node[w]['color'] for w in H[u]
-                           if H.node[w]['color'] != -1)) == 0):
+                            if H.node[w]['color'] != -1)) == 0):
                     frontier_nodes.remove(u)
 
     if verbose:
@@ -120,8 +121,8 @@ def _pivot(H, sinks, frontier_nodes, free_nodes, sink_for_color, verbose=False):
     to the other.  This increases the congestion at one of the sink trees.
 
     """
-    # Find `sink1`, a sink tree with a single predecessor `pivot_node` such that
-    # the pivot has at least one outgoing arc to another sink tree.
+    # Find `sink1`, a sink tree with a single predecessor `pivot_node` such
+    # that the pivot has at least one outgoing arc to another sink tree.
     for sink1 in sinks:
         tree1_color = sinks[sink1]['color']
         nb_in_neighbors = 0
@@ -179,7 +180,82 @@ def _pivot(H, sinks, frontier_nodes, free_nodes, sink_for_color, verbose=False):
 
 def confluent_flow(G, t, demand='demand', capacity='capacity', verbose=False):
     """Compute a confluent flow on graph G where nodes have demands destined to
-    the single sink `s`.
+    the single sink `t`.
+
+    The algorithm works by first computing a maximum flow between the nodes
+    with positive demand and the sink (using the Ford-Fulkerson algorithm). The
+    support graph of this flow is then used to find a confluent flow.
+
+    Parameters
+    ----------
+    G : directed graph
+        Graph for which the confluent flow will be calculated. Arcs can have an
+        attribute 'capacity' that indicates how much flow they can support.
+        Arcs without a 'capacity' attribute are considered to have infinite
+        capacity. Nodes can have a non-negative 'demand' that indicates how
+        much flow they want to send to the sink. Nodes without a 'demand'
+        attribute are considered to have zero demand.
+
+    t : node
+        Sink node towards which all demands should be directed.
+
+    demand : string (optional, default = 'demand')
+        String that indicates the node attribute to interpret as a demand.
+
+    capacity : string (optional, default = 'capacity')
+        String that indicated the arc attribute to interpret as a capacity.
+
+    verbose : boolean (optional, default = False)
+        If True, detailed descriptions of the steps taken by the algorithm are
+        printed to the screen.
+
+    Returns
+    -------
+    sinks : dictionary
+        This dictionary is keyed by "sinks", i.e., nodes that are adjacent to
+        the real sink t. The value for each sink is a dictionary with keys
+        `congestion`, `tree_arcs` and `color`.
+
+        `congestion` is the sum of all demands in the tree rooted at the sink.
+        `tree_arcs` is a list of all arcs in the tree rooted at the sink.
+        `color` is an integer uniquely identifying the tree.
+
+    Examples
+    --------
+    >>> import confluent
+    >>> import networkx as nx
+    >>> G = nx.DiGraph()
+    >>> G.add_weighted_edges_from([(0, 1, 3), (0, 2, 1), (1, 3, 3),
+    ...                            (2, 6, 3), (3, 10, 3), (3, 7, 1),
+    ...                            (4, 8, 1), (5, 4, 1), (5, 2, 1),
+    ...                            (5, 9, 2), (6, 9, 3), (6, 10, 2),
+    ...                            (7, 10, 2), (8, 't', 2), (9, 't', 5),
+    ...                            (10, 't', 9)], weight='capacity')
+    >>> G.node[0]['demand'] = 4
+    >>> G.node[1]['demand'] = 0
+    >>> G.node[2]['demand'] = 1
+    >>> G.node[3]['demand'] = 1
+    >>> G.node[4]['demand'] = 0
+    >>> G.node[5]['demand'] = 4
+    >>> G.node[6]['demand'] = 2
+    >>> G.node[7]['demand'] = 1
+    >>> G.node[8]['demand'] = 1
+    >>> G.node[9]['demand'] = 0
+    >>> G.node[10]['demand'] = 2
+    >>> sinks = confluent.confluent_flow(G, 't')
+    >>> for sink in sinks:
+    ...     print("{:5d}{:5d}    {}".format(sink, sinks[sink]['congestion'],
+    ...                                     sinks[sink]['tree_arcs']))
+    ...
+        8    1    [(4, 8)]
+        9    7    [(5, 9), (6, 9), (2, 6)]
+       10    8    [(7, 10), (3, 10), (1, 3), (0, 1)]
+
+    References
+    ----------
+    .. [1] J. Chen, R. D. Kleinberg, L. Lovász, R. Rajaraman, R. Sundaram, and
+    A.  Vetta, "(Almost) Tight Bounds and Existence Theorems for
+    Single-commodity Confluent Flows," J. ACM, vol. 54, no. 4, Jul. 2007
 
     """
     H = _compute_support_for_max_flow(G, t, demand=demand, capacity=capacity)
